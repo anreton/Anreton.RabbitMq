@@ -34,7 +34,7 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 								"sha256" => new Sha256Generator(),
 								"sha512" => new Sha512Generator(),
 								"md5" => new Md5Generator(),
-								_ => throw new ArgumentException(message: "Unknown hashing algorithm.")
+								_ => throw new ArgumentException(message: "Unknown hashing algorithm. Valid values: 'sha256', 'sha512', 'md5'.")
 							};
 							var hash = generator.GenerateHash(options.Password);
 
