@@ -8,8 +8,17 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators.Abstracti
 	/// <summary>
 	/// Represents a base implementation of the generator.
 	/// </summary>
-	public abstract class Generator
+	public abstract class Generator : IDisposable
 	{
+		private readonly RNGCryptoServiceProvider rngCryptoServiceProvider;
+
+		private bool disposedValue;
+
+		protected Generator()
+		{
+			this.rngCryptoServiceProvider = new RNGCryptoServiceProvider();
+		}
+
 		/// <summary>
 		/// Generates a hash by the password.
 		/// </summary>
@@ -29,13 +38,13 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators.Abstracti
 				throw new ArgumentException($"'{nameof(password)}' must not be empty.", nameof(password));
 			}
 
-			var salt = GetSalt();
-			var passwordBytes = GetUTF8Bytes(password);
-			var saltWithPasswordBytes = MergeArrays(salt, passwordBytes);
-			var hash = this.GetHash(saltWithPasswordBytes);
-			var saltWithHash = MergeArrays(salt, hash);
+			var salt = this.GenerateSalt();
+			var passwordBytes = this.GetUTF8Bytes(password);
+			var saltWithPasswordBytes = this.ConcatArrays(salt, passwordBytes);
+			var hash = this.GenerateHash(saltWithPasswordBytes);
+			var saltWithHash = this.ConcatArrays(salt, hash);
 
-			return ConvertToBase64(saltWithHash);
+			return this.ConvertToBase64(saltWithHash);
 		}
 
 		/// <summary>
@@ -44,18 +53,17 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators.Abstracti
 		/// <returns>
 		/// The salt.
 		/// </returns>
-		private static byte[] GetSalt()
+		protected virtual byte[] GenerateSalt()
 		{
 			const int saltLength = 4;
 			var salt = new byte[saltLength];
-			using var rngCryptoServiceProvider = new RNGCryptoServiceProvider();
-			rngCryptoServiceProvider.GetBytes(salt);
+			this.rngCryptoServiceProvider.GetBytes(salt);
 
 			return salt;
 		}
 
 		/// <summary>
-		/// Generates UTF-8 bytes representation of the string.
+		/// Gets an UTF-8 bytes representation of the string.
 		/// </summary>
 		/// <param name="string">
 		/// The string.
@@ -63,10 +71,10 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators.Abstracti
 		/// <returns>
 		/// The UTF-8 bytes representation of the string.
 		/// </returns>
-		private static byte[] GetUTF8Bytes(string @string) => Encoding.UTF8.GetBytes(@string);
+		protected virtual byte[] GetUTF8Bytes(string @string) => Encoding.UTF8.GetBytes(@string);
 
 		/// <summary>
-		/// Merges two byte arrays.
+		/// Concates two byte arrays.
 		/// </summary>
 		/// <param name="first">
 		/// The first byte array.
@@ -77,12 +85,12 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators.Abstracti
 		/// <returns>
 		/// The merged byte array.
 		/// </returns>
-		private static byte[] MergeArrays(byte[] first, byte[] second) => first
+		protected virtual byte[] ConcatArrays(byte[] first, byte[] second) => first
 			.Concat(second)
 			.ToArray();
 
 		/// <summary>
-		/// Generates Base64 string by byte array.
+		/// Converts an byte array to the Base64 string.
 		/// </summary>
 		/// <param name="input">
 		/// The byte array.
@@ -90,7 +98,7 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators.Abstracti
 		/// <returns>
 		/// The Base64 string.
 		/// </returns>
-		private static string ConvertToBase64(byte[] input) => Convert.ToBase64String(input);
+		protected virtual string ConvertToBase64(byte[] input) => Convert.ToBase64String(input);
 
 		/// <summary>
 		/// Generates a hash of the byte array.
@@ -104,6 +112,25 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators.Abstracti
 		/// <returns>
 		/// The hash of the byte array.
 		/// </returns>
-		protected abstract byte[] GetHash(byte[] input);
+		protected abstract byte[] GenerateHash(byte[] input);
+
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!this.disposedValue)
+			{
+				if (disposing)
+				{
+					this.rngCryptoServiceProvider.Dispose();
+				}
+
+				this.disposedValue = true;
+			}
+		}
+
+		public void Dispose()
+		{
+			this.Dispose(disposing: true);
+			GC.SuppressFinalize(this);
+		}
 	}
 }

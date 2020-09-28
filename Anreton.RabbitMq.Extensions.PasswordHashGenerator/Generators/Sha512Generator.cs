@@ -9,11 +9,30 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators
 	/// </summary>
 	public class Sha512Generator : Generator
 	{
-		protected override byte[] GetHash(byte[] input)
-		{
-			using var sha512 = SHA512.Create();
+		private readonly SHA512 sha512;
 
-			return sha512.ComputeHash(input);
+		private bool disposedValue;
+
+		public Sha512Generator()
+		{
+			this.sha512 = SHA512.Create();
+		}
+
+		protected override byte[] GenerateHash(byte[] input) => this.sha512.ComputeHash(input);
+
+		protected override void Dispose(bool disposing)
+		{
+			if (!this.disposedValue)
+			{
+				if (disposing)
+				{
+					this.sha512.Dispose();
+				}
+
+				this.disposedValue = true;
+			}
+
+			base.Dispose(disposing);
 		}
 	}
 }

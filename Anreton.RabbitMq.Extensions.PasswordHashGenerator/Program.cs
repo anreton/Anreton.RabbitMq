@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.CommandLine;
+using System.CommandLine.Invocation;
+using System.ComponentModel;
 
 using Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators;
 using Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators.Abstractions;
-
-using CommandLine;
-using CommandLine.Text;
 
 namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 {
@@ -21,55 +22,64 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 		/// </param>
 		public static void Main(string[] args)
 		{
-			var parser = new Parser(parserSettings => parserSettings.HelpWriter = null);
-			var parserResult = parser.ParseArguments<Options>(args);
-			_ = parserResult.WithParsed
-				(
-					options =>
-					{
-						try
-						{
-							Generator generator = options.HashingAlgorithm switch
-							{
-								"sha256" => new Sha256Generator(),
-								"sha512" => new Sha512Generator(),
-								"md5" => new Md5Generator(),
-								_ => throw new ArgumentException(message: "Unknown hashing algorithm. Valid values: 'sha256', 'sha512', 'md5'.")
-							};
-							var hash = generator.GenerateHash(options.Password);
+			_ = GetRootCommand().Invoke(args);
 
-							Console.WriteLine(hash);
-						}
-#pragma warning disable CA1031 // Do not catch general exception types
-						catch (Exception exception)
-						{
-							Console.WriteLine(exception.Message);
-						}
-#pragma warning restore CA1031 // Do not catch general exception types
-					}
+			static RootCommand GetRootCommand()
+			{
+				var rootCommand = new RootCommand()
+				{
+					GetPasswordsOption(),
+					GetAlgorithmOption()
+				};
+				rootCommand.Handler = CommandHandler.Create<IEnumerable<string>, Algorithm>(Handle);
+
+				return rootCommand;
+			}
+
+			static Option<IEnumerable<string>> GetPasswordsOption()
+			{
+				var passwordsOption = new Option<IEnumerable<string>>
+				(
+					alias: "--passwords",
+					description: "Passwords to get a hashes."
 				)
-				.WithNotParsed
+				{
+					IsRequired = true
+				};
+				passwordsOption.AddAlias("-p");
+
+				return passwordsOption;
+			}
+
+			static Option<Algorithm> GetAlgorithmOption()
+			{
+				var algorithmOption = new Option<Algorithm>
 				(
-					_ =>
-					{
-						var errorMessage = HelpText
-							.AutoBuild
-							(
-								parserResult,
-								helpText =>
-								{
-									helpText.AutoHelp = false;
-									helpText.AutoVersion = false;
-
-									return HelpText.DefaultParsingErrorsHandler(parserResult, helpText);
-								},
-								example => example
-							)
-							.ToString();
-
-						Console.WriteLine(errorMessage);
-					}
+					alias: "--algorithm",
+					getDefaultValue: () => Algorithm.Sha256,
+					description: "The hashing algorithm used."
 				);
+				algorithmOption.AddAlias("-a");
+
+				return algorithmOption;
+			}
+
+			static void Handle(IEnumerable<string> passwords, Algorithm algorithm)
+			{
+				using Generator generator = algorithm switch
+				{
+					Algorithm.Sha256 => new Sha256Generator(),
+					Algorithm.Sha512 => new Sha512Generator(),
+					Algorithm.Md5 => new Md5Generator(),
+					_ => throw new InvalidEnumArgumentException(message: "Unknown hashing algorithm."),
+				};
+
+				foreach (var password in passwords)
+				{
+					var hash = generator.GenerateHash(password);
+					Console.WriteLine($"{{Password: \"{password}\", Hash: \"{hash}\"}}");
+				}
+			}
 		}
 	}
 }

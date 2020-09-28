@@ -9,11 +9,30 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator.Generators
 	/// </summary>
 	public sealed class Sha256Generator : Generator
 	{
-		protected override byte[] GetHash(byte[] input)
-		{
-			using var sha256 = SHA256.Create();
+		private readonly SHA256 sha256;
 
-			return sha256.ComputeHash(input);
+		private bool disposedValue;
+
+		public Sha256Generator()
+		{
+			this.sha256 = SHA256.Create();
+		}
+
+		protected override byte[] GenerateHash(byte[] input) => this.sha256.ComputeHash(input);
+
+		protected override void Dispose(bool disposing)
+		{
+			if (!this.disposedValue)
+			{
+				if (disposing)
+				{
+					this.sha256.Dispose();
+				}
+
+				this.disposedValue = true;
+			}
+
+			base.Dispose(disposing);
 		}
 	}
 }
