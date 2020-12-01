@@ -33,7 +33,7 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 			var algorithmOption = new Option<HashingAlgorithm>
 			(
 				alias: "--algorithm",
-				getDefaultValue: () => HashingAlgorithm.Sha256,
+				getDefaultValue: () => HashingAlgorithm.SHA256,
 				description: "The hashing algorithm used."
 			);
 			algorithmOption.AddAlias("-a");
@@ -110,11 +110,11 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 			}
 
 			Console.WriteLine($"Received {passwordsForProcessing.Count} passwords in total.");
-			using HashGenerator hashGenerator = algorithm switch
+			using Generator generator = algorithm switch
 			{
-				HashingAlgorithm.Sha256 => new Sha256Generator(),
-				HashingAlgorithm.Sha512 => new Sha512Generator(),
-				HashingAlgorithm.Md5 => new Md5Generator(),
+				HashingAlgorithm.SHA256 => new SHA256Generator(),
+				HashingAlgorithm.SHA512 => new SHA512Generator(),
+				HashingAlgorithm.MD5 => new MD5Generator(),
 				_ => throw new NotSupportedException("Unknown hashing algorithm."),
 			};
 			var passwordHashMap = passwordsForProcessing
@@ -122,7 +122,7 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 				.ToDictionary
 				(
 					password => password,
-					password => hashGenerator.Generate(password)
+					password => generator.Generate(password)
 				);
 
 			var output = $"{{{Environment.NewLine}{string.Join($",{Environment.NewLine}", passwordHashMap.Select(pair => $"\t\"{pair.Key}\": \"{pair.Value}\""))}{Environment.NewLine}}}";

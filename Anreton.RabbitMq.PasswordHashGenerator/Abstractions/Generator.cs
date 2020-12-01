@@ -8,8 +8,13 @@ namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
 	/// <summary>
 	/// Represents a base implementation of the password hash generator.
 	/// </summary>
-	public abstract class HashGenerator : IDisposable
+	public class Generator : IDisposable
 	{
+		/// <summary>
+		/// Hash algorithm.
+		/// </summary>
+		private readonly HashAlgorithm hashAlgorithm;
+
 		/// <summary>
 		/// Random number generator.
 		/// </summary>
@@ -21,10 +26,17 @@ namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
 		private bool disposed;
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="HashGenerator"/> class.
+		/// Initializes a new instance of the <see cref="Generator"/> class.
 		/// </summary>
-		protected HashGenerator()
+		/// <param name="hashAlgorithm">
+		/// Hash algorithm.
+		/// </param>
+		/// <exception cref="ArgumentNullException">
+		/// <paramref name="hashAlgorithm"/> is <see langword="null"/>.
+		/// </exception>
+		protected Generator(HashAlgorithm hashAlgorithm)
 		{
+			this.hashAlgorithm = hashAlgorithm ?? throw new ArgumentNullException(nameof(hashAlgorithm));
 			this.rngCryptoServiceProvider = new RNGCryptoServiceProvider();
 		}
 
@@ -38,9 +50,6 @@ namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
 		/// <summary>
 		/// Generates a hash by the password.
 		/// </summary>
-		/// <remarks>
-		/// Implements `Template Method` pattern. <see cref="ComputeHash(byte[])"/> is overridable part.
-		/// </remarks>
 		/// <param name="password">
 		/// The password to get a hash.
 		/// </param>
@@ -51,11 +60,6 @@ namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
 		/// <paramref name="password"/> is <see langword="null"/>.
 		/// -or-
 		/// <paramref name="password"/> is empty <see cref="string"/>.
-		/// </exception>
-		/// <exception cref="InvalidOperationException">
-		/// <see cref="ComputeHash(byte[])"/> returns <see langword="null"/>.
-		/// -or-
-		/// <see cref="ComputeHash(byte[])"/> returns empty array of <see cref="byte"/>.
 		/// </exception>
 		public string Generate(string password)
 		{
@@ -71,30 +75,13 @@ namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
 			var saltWithPasswordAsUtf8 = salt
 				.Concat(passwordAsUtf8)
 				.ToArray();
-			var hashOfSaltWithPasswordAsUtf8 = this.ComputeHash(saltWithPasswordAsUtf8);
-
-			if (hashOfSaltWithPasswordAsUtf8 is null || hashOfSaltWithPasswordAsUtf8.Length == 0)
-			{
-				throw new InvalidOperationException($"{nameof(hashOfSaltWithPasswordAsUtf8)} must not be empty.");
-			}
-
-			var saltWithHashOfSaltWithPasswordUTF8Bytes = salt
+			var hashOfSaltWithPasswordAsUtf8 = this.hashAlgorithm.ComputeHash(saltWithPasswordAsUtf8);
+			var saltWithHashOfSaltWithPasswordAsUtf8 = salt
 				.Concat(hashOfSaltWithPasswordAsUtf8)
 				.ToArray();
 
-			return Convert.ToBase64String(saltWithHashOfSaltWithPasswordUTF8Bytes);
+			return Convert.ToBase64String(saltWithHashOfSaltWithPasswordAsUtf8);
 		}
-
-		/// <summary>
-		/// Computes the hash value for the specified array of <see cref="byte"/>.
-		/// </summary>
-		/// <param name="input">
-		/// The input array of <see cref="byte"/> to compute the hash for.
-		/// </param>
-		/// <returns>
-		/// The computed hash.
-		/// </returns>
-		protected abstract byte[] ComputeHash(byte[] input);
 
 		/// <summary>
 		/// Performs the actual dispose.
@@ -114,6 +101,7 @@ namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
 
 			if (disposing)
 			{
+				this.hashAlgorithm.Dispose();
 				this.rngCryptoServiceProvider.Dispose();
 			}
 

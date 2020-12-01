@@ -6,18 +6,18 @@
 	public enum HashingAlgorithm
 	{
 		/// <summary>
-		/// Sha256.
+		/// SHA256.
 		/// </summary>
-		Sha256 = 0,
+		SHA256 = 0,
 
 		/// <summary>
-		/// Sha512.
+		/// SHA512.
 		/// </summary>
-		Sha512 = 1,
+		SHA512 = 1,
 
 		/// <summary>
-		/// Md5.
+		/// MD5.
 		/// </summary>
-		Md5 = 2
+		MD5 = 2
 	}
 }
