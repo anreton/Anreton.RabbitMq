@@ -1,11 +1,11 @@
 ﻿using System.Security.Cryptography;
 
-using Anreton.RabbitMq.PasswordHashGenerator.Abstractions;
+using Anreton.RabbitMq.HashGenerator.Abstractions;
 
-namespace Anreton.RabbitMq.PasswordHashGenerator
+namespace Anreton.RabbitMq.HashGenerator
 {
 	/// <summary>
-	/// Represents an implementation of the SHA256 hash generator.
+	/// Represents an implementation of the SHA256 generator.
 	/// </summary>
 	public sealed class SHA256Generator : Generator
 	{

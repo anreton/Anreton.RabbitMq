@@ -3,20 +3,20 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
+namespace Anreton.RabbitMq.HashGenerator.Abstractions
 {
 	/// <summary>
-	/// Represents a base implementation of the password hash generator.
+	/// Represents a base implementation of the hash generator.
 	/// </summary>
 	public class Generator : IDisposable
 	{
 		/// <summary>
-		/// Hash algorithm.
+		/// The hash algorithm.
 		/// </summary>
 		private readonly HashAlgorithm hashAlgorithm;
 
 		/// <summary>
-		/// Random number generator.
+		/// The random number generator.
 		/// </summary>
 		private readonly RNGCryptoServiceProvider rngCryptoServiceProvider;
 
@@ -29,7 +29,7 @@ namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
 		/// Initializes a new instance of the <see cref="Generator"/> class.
 		/// </summary>
 		/// <param name="hashAlgorithm">
-		/// Hash algorithm.
+		/// The hash algorithm.
 		/// </param>
 		/// <exception cref="ArgumentNullException">
 		/// <paramref name="hashAlgorithm"/> is <see langword="null"/>.
@@ -48,39 +48,41 @@ namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
 		}
 
 		/// <summary>
-		/// Generates a hash by the password.
+		/// Generates the hash for the specified string.
 		/// </summary>
-		/// <param name="password">
-		/// The password to get a hash.
+		/// <param name="input">
+		/// The input string to generate the hash code for.
 		/// </param>
 		/// <returns>
-		/// The hash by the password.
+		/// The generated hash.
 		/// </returns>
 		/// <exception cref="ArgumentException">
-		/// <paramref name="password"/> is <see langword="null"/>.
+		/// <paramref name="input"/> is <see langword="null"/>.
 		/// -or-
-		/// <paramref name="password"/> is empty <see cref="string"/>.
+		/// <paramref name="input"/> is empty <see cref="string"/>.
 		/// </exception>
-		public string Generate(string password)
+		public string Generate(string input)
 		{
-			if (string.IsNullOrEmpty(password))
+			if (string.IsNullOrEmpty(input))
 			{
-				throw new ArgumentException($"{nameof(password)} must not be empty.", nameof(password));
+				throw new ArgumentException($"{nameof(input)} must not be empty.", nameof(input));
 			}
 
-			var salt = this.GenerateSalt();
-			var passwordAsUtf8 = Encoding
+			const int saltLength = 4;
+			var salt = new byte[saltLength];
+			this.rngCryptoServiceProvider.GetBytes(salt);
+			var inputAsUTF8Bytes = Encoding
 				.UTF8
-				.GetBytes(password);
-			var saltWithPasswordAsUtf8 = salt
-				.Concat(passwordAsUtf8)
+				.GetBytes(input);
+			var saltWithInputAsUTF8Bytes = salt
+				.Concat(inputAsUTF8Bytes)
 				.ToArray();
-			var hashOfSaltWithPasswordAsUtf8 = this.hashAlgorithm.ComputeHash(saltWithPasswordAsUtf8);
-			var saltWithHashOfSaltWithPasswordAsUtf8 = salt
-				.Concat(hashOfSaltWithPasswordAsUtf8)
+			var hashOfSaltWithInputAsUTF8Bytes = this.hashAlgorithm.ComputeHash(saltWithInputAsUTF8Bytes);
+			var saltWithHashOfSaltWithInputAsUTF8Bytes = salt
+				.Concat(hashOfSaltWithInputAsUTF8Bytes)
 				.ToArray();
 
-			return Convert.ToBase64String(saltWithHashOfSaltWithPasswordAsUtf8);
+			return Convert.ToBase64String(saltWithHashOfSaltWithInputAsUTF8Bytes);
 		}
 
 		/// <summary>
@@ -106,21 +108,6 @@ namespace Anreton.RabbitMq.PasswordHashGenerator.Abstractions
 			}
 
 			this.disposed = true;
-		}
-
-		/// <summary>
-		/// Generates a salt.
-		/// </summary>
-		/// <returns>
-		/// The salt.
-		/// </returns>
-		private byte[] GenerateSalt()
-		{
-			const int saltLength = 4;
-			var salt = new byte[saltLength];
-			this.rngCryptoServiceProvider.GetBytes(salt);
-
-			return salt;
 		}
 	}
 }

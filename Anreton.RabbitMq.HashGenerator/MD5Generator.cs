@@ -1,11 +1,11 @@
 ﻿using System.Security.Cryptography;
 
-using Anreton.RabbitMq.PasswordHashGenerator.Abstractions;
+using Anreton.RabbitMq.HashGenerator.Abstractions;
 
-namespace Anreton.RabbitMq.PasswordHashGenerator
+namespace Anreton.RabbitMq.HashGenerator
 {
 	/// <summary>
-	/// Represents an implementation of the MD5 hash generator.
+	/// Represents an implementation of the MD5 generator.
 	/// </summary>
 	public sealed class MD5Generator : Generator
 	{

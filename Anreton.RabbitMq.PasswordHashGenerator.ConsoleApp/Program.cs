@@ -5,8 +5,8 @@ using System.CommandLine.Invocation;
 using System.IO;
 using System.Linq;
 
-using Anreton.RabbitMq.PasswordHashGenerator;
-using Anreton.RabbitMq.PasswordHashGenerator.Abstractions;
+using Anreton.RabbitMq.HashGenerator;
+using Anreton.RabbitMq.HashGenerator.Abstractions;
 
 namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 {
@@ -30,13 +30,13 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 			);
 			passwordsOption.AddAlias("-p");
 
-			var algorithmOption = new Option<HashingAlgorithm>
+			var hashAlgorithmOption = new Option<HashAlgorithm>
 			(
 				alias: "--algorithm",
-				getDefaultValue: () => HashingAlgorithm.SHA256,
-				description: "The hashing algorithm used."
+				getDefaultValue: () => HashAlgorithm.SHA256,
+				description: "The hash algorithm."
 			);
-			algorithmOption.AddAlias("-a");
+			hashAlgorithmOption.AddAlias("-a");
 
 			var importOption = new Option<string>
 			(
@@ -55,11 +55,11 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 			var rootCommand = new RootCommand()
 			{
 				passwordsOption,
-				algorithmOption,
+				hashAlgorithmOption,
 				importOption,
 				exportOption
 			};
-			rootCommand.Handler = CommandHandler.Create<IEnumerable<string>, HashingAlgorithm, string, string>(Handler);
+			rootCommand.Handler = CommandHandler.Create<IEnumerable<string>, HashAlgorithm, string, string>(Handler);
 
 			_ = rootCommand.Invoke(args);
 		}
@@ -70,29 +70,29 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 		/// <param name="passwords">
 		/// Passwords to get a hashes.
 		/// </param>
-		/// <param name="algorithm">
-		/// The hashing algorithm used.
+		/// <param name="hashAlgorithm">
+		/// The hash algorithm.
 		/// </param>
 		/// <param name="import">
-		/// Path to the file with passwords.
+		/// The path to the file with passwords.
 		/// </param>
 		/// <param name="export">
-		/// Path to the file where to export results.
+		/// The path to the file where to export results.
 		/// </param>
 		/// <exception cref="NotSupportedException">
-		/// Unknown hashing algorithm used.
+		/// Unknown <see cref="HashAlgorithm"/> used.
 		/// </exception>
 		private static void Handler
 		(
 			IEnumerable<string> passwords,
-			HashingAlgorithm algorithm,
+			HashAlgorithm hashAlgorithm,
 			string import,
 			string export
 		)
 		{
 			var passwordsForProcessing = new List<string>();
 
-			if (!(passwords is null) && passwords.Any())
+			if (passwords is not null && passwords.Any())
 			{
 				passwordsForProcessing.AddRange(passwords);
 				Console.WriteLine($"Received {passwordsForProcessing.Count} passwords from arguments.");
@@ -110,12 +110,12 @@ namespace Anreton.RabbitMq.Extensions.PasswordHashGenerator
 			}
 
 			Console.WriteLine($"Received {passwordsForProcessing.Count} passwords in total.");
-			using Generator generator = algorithm switch
+			using Generator generator = hashAlgorithm switch
 			{
-				HashingAlgorithm.SHA256 => new SHA256Generator(),
-				HashingAlgorithm.SHA512 => new SHA512Generator(),
-				HashingAlgorithm.MD5 => new MD5Generator(),
-				_ => throw new NotSupportedException("Unknown hashing algorithm."),
+				HashAlgorithm.SHA256 => new SHA256Generator(),
+				HashAlgorithm.SHA512 => new SHA512Generator(),
+				HashAlgorithm.MD5 => new MD5Generator(),
+				_ => throw new NotSupportedException($"Unknown {nameof(HashAlgorithm)}."),
 			};
 			var passwordHashMap = passwordsForProcessing
 				.OrderBy(password => password)
